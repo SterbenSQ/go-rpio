@@ -73,6 +73,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
 	"sync"
@@ -90,11 +91,11 @@ type Edge uint8
 // Memory offsets for gpio, see the spec for more details
 const (
 	bcm2837Base = 0x3f000000
-	gpioOffset  = 0x200000
-	clkOffset   = 0x101000
-	pwmOffset   = 0x20C000
-	spiOffset   = 0x204000
-	intrOffset  = 0x00B000
+	gpioOffset  = 0x00200000
+	clkOffset   = 0x00101000
+	pwmOffset   = 0x0020C000
+	spiOffset   = 0x00204000
+	intrOffset  = 0x0000B000
 
 	memLength = 4096
 )
@@ -119,6 +120,7 @@ var (
 
 func init() {
 	base := getBase()
+	fmt.Printf("基地值为:%#x", base)
 	gpioBase = base + gpioOffset
 	clkBase = base + clkOffset
 	pwmBase = base + pwmOffset
@@ -746,10 +748,10 @@ func Open() (err error) {
 	var file *os.File
 
 	// Open fd for rw mem access; try dev/mem first (need root)
-	file, err = os.OpenFile("/dev/mem", os.O_RDWR|os.O_SYNC, os.ModePerm)
-	if os.IsPermission(err) { // try gpiomem otherwise (some extra functions like clock and pwm setting wont work)
-		file, err = os.OpenFile("/dev/gpiomem", os.O_RDWR|os.O_SYNC, os.ModePerm)
-	}
+	//file, err = os.OpenFile("/dev/mem", os.O_RDWR|os.O_SYNC, os.ModePerm)
+	//if os.IsPermission(err) { // try gpiomem otherwise (some extra functions like clock and pwm setting wont work)
+	file, err = os.OpenFile("/dev/gpiomem", os.O_RDWR|os.O_SYNC, os.ModePerm)
+	//}
 	if err != nil {
 		return
 	}
@@ -859,13 +861,11 @@ func getBase() int64 {
 	if err == nil {
 		return b
 	}
-
 	// Pi 4 GPIO base address is as offset 8
 	b, err = readBase(8)
 	if err == nil {
 		return b
 	}
-
 	// Default to Pi 1
 	return int64(bcm2837Base)
 }
